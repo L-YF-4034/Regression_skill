@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>互動式迴歸分析｜流程設計與使用說明</title><style>
+:root{--ink:#152b3c;--muted:#52667a;--teal:#087e8b;--line:#dae4eb}*{box-sizing:border-box}body{margin:0;background:#edf2f5;color:var(--ink);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;line-height:1.85}main{max-width:1100px;margin:auto;background:white;padding:55px 60px}header{padding:24px 0 36px;border-bottom:3px solid var(--teal)}.eyebrow{color:var(--teal);font-size:13px;letter-spacing:2px;font-weight:700}h1{font-size:36px;line-height:1.4;margin:12px 0}h2{font-size:25px;margin:40px 0 15px}h3{font-size:18px}p{margin:12px 0}.lead{color:var(--muted);font-size:18px}.tag{display:inline-block;padding:4px 12px;border-radius:20px;background:#e5f4f3;color:#066874;font-size:13px;margin:5px 8px 0 0}.callout{padding:18px 22px;background:#eff8f8;border-left:4px solid var(--teal);border-radius:4px;margin:22px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{border:1px solid var(--line);border-radius:12px;padding:18px 22px}.card h3{margin:0 0 8px}table{border-collapse:collapse;width:100%;font-size:14px;margin:18px 0}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:12px}th{background:#f0f5f8}code,pre{font-family:Consolas,monospace}code{font-size:.9em;background:#f0f4f7;padding:2px 5px;border-radius:3px}pre{background:#142d3e;color:#eaf5ff;padding:20px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.7}nav a{display:inline-block;color:var(--teal);margin-right:20px}.small{font-size:13px;color:var(--muted)}svg{display:block;width:100%;max-width:850px;margin:auto}.box{fill:#f1f6fa;stroke:#c4d5e0;stroke-width:1.5}.gate{fill:#e1f4f1;stroke:#087e8b;stroke-width:2}.node-title{font-size:18px;fill:#152b3c;text-anchor:middle;font-weight:700}.node-sub{font-size:13px;fill:#52667a;text-anchor:middle}.edge{fill:none;stroke:#64748b;stroke-width:1.6;marker-end:url(#arrow)}.branch{font-size:13px;fill:#52667a}footer{border-top:1px solid var(--line);margin-top:40px;padding-top:20px;color:var(--muted);font-size:13px}@media(max-width:700px){main{padding:25px 20px}h1{font-size:28px}.grid{grid-template-columns:1fr}table{display:block;overflow-x:auto}}@media print{body{background:white}main{max-width:none;padding:0}h2,h3{break-after:avoid}.card,tr{break-inside:avoid}nav{display:none}.flow{break-before:page}a{color:inherit}}
+
+.node-title{font-size:17px}.node-sub{font-size:12px}.flow-scroll{overflow:auto}.flow-scroll svg{min-width:640px}svg{max-width:900px}.equation{font-family:Georgia,serif;font-size:19px;text-align:center;padding:12px;background:#f4f7fa}details{border:1px solid #dae4eb;border-radius:8px;padding:12px;margin:14px 0}summary{cursor:pointer;font-weight:bold}a{color:#087e8b}
+.node-title{font-size:17px}.node-sub{font-size:12px}.flow-scroll{overflow:auto}.flow-scroll svg{min-width:640px}svg{max-width:900px}.equation{font-family:Georgia,serif;font-size:19px;text-align:center;padding:12px;background:#f4f7fa}details{border:1px solid #dae4eb;border-radius:8px;padding:12px;margin:14px 0}summary{cursor:pointer;font-weight:bold}a{color:#087e8b}
+.node-title{font-size:17px}.node-sub{font-size:12px}.flow-scroll{overflow:auto}.flow-scroll svg{min-width:640px}svg{max-width:900px}.equation{font-family:Georgia,serif;font-size:19px;text-align:center;padding:12px;background:#f4f7fa}details{border:1px solid #dae4eb;border-radius:8px;padding:12px;margin:14px 0}summary{cursor:pointer;font-weight:bold}a{color:#087e8b}</style></head><body><main><header>
+  <div class="eyebrow">GUIDED REGRESSION ANALYSIS · R &amp; QUARTO</div>
+  <h1>互動式迴歸分析<br>流程設計與使用說明</h1>
+  <p class="lead">從資料探索與模型選擇，到診斷、轉換及報告製作，以逐階段確認建立清楚、可追溯的分析流程。</p>
+  <span class="tag">簡單線性迴歸</span><span class="tag">複迴歸</span><span class="tag">多項式迴歸</span><span class="tag">繁體中文報告</span>
+</header>
+<nav><a href="#overview">分析目標</a><a href="#flow">流程圖</a><a href="#model">模型選擇</a><a href="#diagnostics">診斷與轉換</a><a href="#report">報告製作</a><a href="#usage">使用方式</a></nav>
+
+<section id="overview">
+  <h2>01｜分析目標與適用範圍</h2>
+  <p><code>guided-linear-regression</code>是一套以R執行的互動式迴歸分析skill，協助使用者依研究問題選定變數、確認模型，再進行估計與診斷。分析結果以繁體中文解釋，流程結束後整理為Quarto QMD與PDF，保留可重現的程式碼、圖表及方法依據。</p>
+  <p>適用資料以CSV為主，一個row代表一筆觀測，一個column代表一個變數。反應變數Y為單一連續數值變數，解釋變數X可包含數值及已確認參考組的類別變數。二元或計數反應、重複測量與群聚資料，應另外評估適合的模型。</p>
+  <div class="callout"><strong>核心原則：先看資料，再確認選擇，最後整理成果。</strong><p>先展示所有數值變數的兩兩散佈圖，再詢問Y與X。模型、階數、配適與診斷逐步確認；使用者尚未回答時不代為決定，診斷標記也不直接作為刪除資料的理由。</p></div>
+  <div class="grid"><div class="card"><h3>使用者決定研究方向</h3><p>確認變數意義、單位、研究目的、模型設定與各階段是否執行。變數角色依研究問題決定，不以相關係數自動推斷方向。</p></div><div class="card"><h3>R程式負責計算</h3><p>以固定函數產生VIF、係數、檢定及圖形，再根據實際輸出撰寫解釋。將分析設定與計算程序保存於可重現的報告中。</p></div></div>
+</section>
+
+<section id="flow">
+  <h2>02｜完整分析流程</h2>
+  <p>綠色框為需要停下等待回答的確認點。若不繼續配適，則以已完成的探索與設計診斷結束；略過殘差或轉換時，仍可確認是否進行離群分析。互動期間呈現結果與圖形，最終報告於流程結束後製作。</p>
+  <div class="flow-scroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 2030" role="img" aria-labelledby="flowtitle"><title id="flowtitle">含VIF與多項式選擇的迴歸流程</title><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#64748b"/></marker></defs><style>.box{fill:#f1f6fa;stroke:#c4d5e0;stroke-width:1.5}.gate{fill:#e1f4f1;stroke:#087e8b;stroke-width:2}.node-title{font:700 17px Microsoft JhengHei,sans-serif;fill:#152b3c;text-anchor:middle}.node-sub{font:12px Microsoft JhengHei,sans-serif;fill:#52667a;text-anchor:middle}.edge{fill:none;stroke:#64748b;stroke-width:1.6;marker-end:url(#arr)}.branch{font:13px Microsoft JhengHei,sans-serif;fill:#52667a}</style><path class="edge" d="M440 86 V125"/><path class="edge" d="M440 198 V237"/><path class="edge" d="M440 310 V349"/><path class="edge" d="M440 422 V461"/><path class="edge" d="M440 534 V573"/><path class="edge" d="M440 646 V685"/><path class="edge" d="M440 758 V797"/><path class="edge" d="M440 870 V909"/><path class="edge" d="M440 982 V1021"/><path class="edge" d="M440 1094 V1133"/><path class="edge" d="M440 1206 V1245"/><path class="edge" d="M440 1318 V1357"/><path class="edge" d="M440 1430 V1469"/><path class="edge" d="M440 1542 V1581"/><path class="edge" d="M440 1654 V1693"/><path class="edge" d="M440 1766 V1805"/><path class="edge" d="M440 1878 V1917"/><rect class="box" x="155" y="15" width="570" height="72" rx="14"/><text class="node-title" x="440" y="46">資料檢查與所有數值變數散佈圖</text><text class="node-sub" x="440" y="71">先看資料，不預設Y或X</text><rect class="gate" x="155" y="127" width="570" height="72" rx="14"/><text class="node-title" x="440" y="158">詢問：哪個是Y？哪些是X？</text><text class="node-sub" x="440" y="183">停止等待指定角色</text><rect class="box" x="155" y="239" width="570" height="72" rx="14"/><text class="node-title" x="440" y="270">列設定、一次候選公式與VIF</text><text class="node-sub" x="440" y="295">只診斷X設計；單一數值X的VIF＝1</text><rect class="box" x="155" y="351" width="570" height="72" rx="14"/><text class="node-title" x="440" y="382">依圖形提出一次或多項式候選</text><text class="node-sub" x="440" y="407">指出具體X與二次／三次項及理由</text><rect class="gate" x="155" y="463" width="570" height="72" rx="14"/><text class="node-title" x="440" y="494">詢問模型及各X要用幾階？</text><text class="node-sub" x="440" y="519">停止等待；不自動採推薦階數</text><rect class="box" x="155" y="575" width="570" height="72" rx="14"/><text class="node-title" x="440" y="606">確認中心化與中心值，重算最終VIF</text><text class="node-sub" x="440" y="631">保留所有低階項，列實際公式</text><rect class="gate" x="155" y="687" width="570" height="72" rx="14"/><text class="node-title" x="440" y="718">是否依最終公式進行配適？</text><text class="node-sub" x="440" y="743">停止等待；否則結束並以已完成內容生成報告</text><rect class="box" x="155" y="799" width="570" height="72" rx="14"/><text class="node-title" x="440" y="830">配適模型與原始資料比較</text><text class="node-sub" x="440" y="855">summary、CI、F、R²、直線／多項式曲線</text><rect class="gate" x="155" y="911" width="570" height="72" rx="14"/><text class="node-title" x="440" y="942">是否進行殘差分析？</text><text class="node-sub" x="440" y="967">停止等待使用者回答</text><rect class="box" x="155" y="1023" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1054">殘差圖與SW、BP、雙尾DW</text><text class="node-sub" x="440" y="1079">DW一律執行；註明目前row次序的意義</text><rect class="gate" x="155" y="1135" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1166">提出建議：是否進行Box-Cox探索？</text><text class="node-sub" x="440" y="1191">停止等待；Y須為正值</text><rect class="box" x="155" y="1247" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1278">Box-Cox plot、lambda估計與95%CI</text><text class="node-sub" x="440" y="1303">先展示profile結果，尚未轉換</text><rect class="gate" x="155" y="1359" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1390">指定lambda或使用估計值；確認轉換</text><text class="node-sub" x="440" y="1415">同意且未指定時使用估計值</text><rect class="box" x="155" y="1471" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1502">轉換Y、重新配適與殘差診斷</text><text class="node-sub" x="440" y="1527">保留X階數、中心值；記錄實際lambda</text><rect class="gate" x="155" y="1583" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1614">是否檢測離群與影響點？</text><text class="node-sub" x="440" y="1639">停止等待；不自動刪點</text><rect class="box" x="155" y="1695" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1726">只列被標記樣本與觸發原因</text><text class="node-sub" x="440" y="1751">沒有被標記樣本時，明確說沒有</text><rect class="box" x="155" y="1807" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1838">告知：此次分析結束</text><text class="node-sub" x="440" y="1863">流程結束後才開始生成最終報告</text><rect class="box" x="155" y="1919" width="570" height="72" rx="14"/><text class="node-title" x="440" y="1950">僅以成功完成內容生成QMD，再編譯PDF</text><text class="node-sub" x="440" y="1975">未完成章節整段排除；code → 結果 → 解釋</text><path class="edge" d="M725 946 H825 V1618 H730"/><text class="branch" x="831" y="996">否</text><path class="edge" d="M155 1170 H75 V1618 H150"/><text class="branch" x="5" y="1220">否／不需</text><path class="edge" d="M155 1394 H120 V1618 H150"/><text class="branch" x="5" y="1444">不轉換</text><path class="edge" d="M725 1618 H780 V1842 H730"/><text class="branch" x="786" y="1668">否</text></svg></div>
+</section>
+
+<section id="model">
+  <h2>03｜從探索圖到模型設定</h2>
+  <h3>先探索資料，再指定Y與X</h3>
+  <p>分析開始時檢查樣本數、欄位型態、缺失及特殊編碼，並展示所有可繪圖數值變數的兩兩散佈圖；變數較多時分頁呈現。類別與文字欄位另列說明，採合適圖形，不強制轉為數值。展示後再詢問反應變數與解釋變數。</p>
+  <h3>以VIF檢視模型設計</h3>
+  <p>選定角色後，先列出X、Y、一次候選公式及研究目的，再提供VIF與tolerance。VIF以X設計矩陣的輔助迴歸計算，此時尚不估計Y的模型。</p>
+  <div class="card"><strong>設定呈現範例</strong><p>X：Girth；Y：Volume。若使用一次項，模型類型為簡單線性迴歸：</p><div class="equation">Volumeᵢ = β₀ + β₁ Girthᵢ + εᵢ</div><p>此模型用來分析Girth與Volume的線性關係。只有這一個數值X時，VIF按定義為1；這不表示誤差獨立，也不代表一次模型必然適合。</p></div>
+  <table><thead><tr><th>VIF範圍</th><th>建議的解讀</th></tr></thead><tbody><tr><td>1至小於5</td><td>未見強烈共線性訊號，仍需考量研究設計。</td></tr><tr><td>5至小於10</td><td>留意共線性，檢查變數重複、尺度與模型設定。</td></tr><tr><td>10以上</td><td>共線性偏高，進一步核查設計及中心化。</td></tr><tr><td>Inf或秩不足</td><td>檢查完全或近完全依賴，修正後再配適。</td></tr></tbody></table>
+  <p>上述範圍為經驗提示，不是顯著性檢定。腳本提供column層級VIF，將factor dummy與多項式冪次分開列示，並非term層級GVIF；不依門檻自動刪除變數。</p>
+  <h3>依圖形提出模型候選</h3>
+  <table><thead><tr><th>資料型態與趨勢</th><th>模型候選</th><th>確認內容</th></tr></thead><tbody><tr><td>全部採一次項，單一原始X</td><td>簡單線性迴歸</td><td>變數、公式及是否配適。</td></tr><tr><td>全部採一次項，多個原始X</td><td>複迴歸</td><td>控制變數、參考組及是否配適。</td></tr><tr><td>平滑彎曲、U形或倒U形</td><td>可考慮二階多項式：X、X²</td><td>哪些X需要次方項、採用幾階及是否中心化。</td></tr><tr><td>明顯S形或較複雜趨勢，且資料充分</td><td>有理由時考慮三階：X、X²、X³</td><td>階數是否有圖形與研究背景支持，是否保留較簡單模型。</td></tr></tbody></table>
+  <p>圖形支持的是候選建議，不能直接視為最佳階數。多項式保留所有低階項，不因單一離群外觀升階，也不自動產生交互作用。</p>
+  <div class="equation">Yᵢ = β₀ + β₁(Xᵢ−c) + β₂(Xᵢ−c)² + εᵢ</div>
+  <p>中心化以固定常數c表達，通常建議使用分析資料的X平均數，並先取得確認。選定階數與中心值後，重新呈現公式及VIF，再詢問是否配適。中心化可改善部分非本質共線性，但不保證VIF必然降低。</p>
+  <h3>估計結果與配適圖</h3>
+  <p>確認後以<code>lm()</code>配適，呈現<code>summary(fit)</code>、係數95%信賴區間、整體F、R²、調整R²及殘差標準差。單一數值X以原始點與配適直線／曲線比較；多個X另畫實際值對配適值，以及固定其他X後的條件線／曲線。</p>
+</section>
+
+<section id="diagnostics">
+  <h2>04｜殘差、轉換與影響診斷</h2>
+  <h3>殘差分析</h3>
+  <p>取得同意後，檢視殘差對配適值、各X、Q-Q及scale-location圖，並執行Shapiro–Wilk、學生化Breusch–Pagan及雙尾Durbin–Watson。檢定結果與圖形共同解讀，未拒絕假設不等於證明假設成立。</p>
+  <p>Durbin–Watson按目前分析資料的row順序執行。若未確認該順序具有時間或採樣意義，需說明其結果依賴排列方式，不能據此證明誤差獨立。</p>
+  <h3>Box–Cox轉換</h3>
+  <p>若殘差顯示需要評估轉換，先取得探索同意，再呈現Box–Cox plot、lambda估計值與95%profile信賴區間。使用者可指定lambda；同意轉換且未另指定時，使用估計值。報告分開記錄估計值、區間及實際使用值。</p>
+  <p>轉換要求Y為正值；完成後重新配適與診斷，沿用X的階數及固定中心值。轉換不保證消除觀測相依，不同反應尺度的R²或未校正AIC也不直接作優劣比較。</p>
+  <h3>離群與影響樣本</h3>
+  <p>最後另行確認是否計算槓桿、內外學生化殘差、Cook’s distance、DFFITS及DFBETAS。計算涵蓋全部分析樣本，但只輸出至少一項門檻被標記者，包含原始row ID、診斷值與觸發原因；DFBETAS亦只列這些樣本。</p>
+  <div class="callout">沒有任何標記時，明確顯示「沒有被所用門檻標記的離群值或影響樣本」。高槓桿、反應離群與影響點分開解釋，不自動刪除資料。</div>
+</section>
+
+<section id="report">
+  <h2>05｜分析結束與成果報告</h2>
+  <p>互動期間保存設定、結果與確認紀錄。流程走完，或使用者明確不繼續而結束時，先告知「此次分析結束」，接著生成QMD並編譯PDF，不再為報告製作多問一次。</p>
+  <p>最終報告依實際成功完成的階段選取內容。未執行、拒絕、失敗或中止的部分，其標題、程式碼、圖形與解釋均不納入；不以單純關閉執行的方式留下空白章節。</p>
+  <div class="grid"><div class="card"><h3>逐段呈現分析依據</h3><p><strong>程式碼 → 實際結果／圖 → 中文解釋</strong></p><p>每段解釋緊接相應輸出，讓讀者能理解數字、圖形與結論的關係。</p></div><div class="card"><h3>交付可重現的成果</h3><p>包含QMD、編譯且檢視過的PDF，以及必要的CSV與R程式。若編譯失敗，保留來源檔並如實說明。</p></div></div>
+  <p>QMD模板保留階段邊界，報告生成器依<code>completed_stages</code>實體選取章節並重新編排Code編號。授權與成功完成是兩個不同狀態：已同意但未成功執行的步驟，不視為已完成。</p>
+  <details><summary>報告製作的執行方式</summary><pre>source("&lt;skill路徑&gt;/scripts/finalize_report.R", encoding="UTF-8")
+write_final_report(
+  template="&lt;skill路徑&gt;/assets/report.qmd",
+  output="report/analysis.qmd",
+  params=analysis_params,
+  completed_stages=completed_stages,
+  analysis_finished=TRUE,
+  render=TRUE
+)</pre><p>例如只完成探索、VIF與模型配適時，成功階段清單為<code>c("exploration","vif","fit")</code>。報告便保留這些內容及重現資訊，不包含殘差、轉換或離群章節。</p></details>
+</section>
+
+<section id="usage">
+  <h2>06｜使用方式與檔案分工</h2>
+  <p>使用時保留完整的<code>guided-linear-regression</code>資料夾，在支援skill的工具中選取名稱，或提供<code>SKILL.md</code>的完整路徑，並附上資料與欄位說明。主規則負責流程，R程式負責計算，QMD模板與報告生成器負責整理成果。</p>
+  <pre>請使用 guided-linear-regression 分析這份CSV。
+先展示所有數值變數的兩兩散佈圖，再詢問我Y與X。
+選定變數後提供VIF與模型建議，確認階數及設定後才配適。
+各階段依序確認，最後生成QMD與PDF報告。</pre>
+  <table><thead><tr><th>檔案</th><th>用途</th></tr></thead><tbody><tr><td>SKILL.md</td><td>分析範圍、執行順序、確認點與寫作規則。</td></tr><tr><td>README.md</td><td>功能、操作步驟、環境需求及報告規格。</td></tr><tr><td>references/decision-tree.md</td><td>流程分支與決策順序。</td></tr><tr><td>references/methods.md</td><td>統計公式、門檻、方法來源及教材勘誤。</td></tr><tr><td>references/textbook-methods.md</td><td>中文解讀與報告撰寫方式。</td></tr><tr><td>references/workflow.mmd、workflow.svg</td><td>可編輯的Mermaid流程圖與離線SVG。</td></tr><tr><td>scripts/regression.R</td><td>VIF、模型、圖形、殘差、轉換及離群分析。</td></tr><tr><td>scripts/finalize_report.R</td><td>流程結束後生成僅含已完成階段的QMD並編譯PDF。</td></tr><tr><td>assets/report.qmd</td><td>分析程式碼及文字結構的報告模板。</td></tr><tr><td>agents/openai.yaml</td><td>支援此格式之介面的顯示資訊。</td></tr></tbody></table>
+  <p>計算與報告環境需要R、Quarto、可用的PDF引擎及中文字型，並備妥MASS、lmtest、knitr、rmarkdown與yaml套件。模板採XeLaTeX及Microsoft JhengHei，換平台時需調整為可用的UTF-8語系與中文字型。</p>
+</section>
+
+<section id="reproducibility">
+  <h2>07｜可重現性與方法依據</h2>
+  <p>固定種子20261020、資料MD5、row順序、缺失處理、factor levels、參考組、模型公式、多項式階數、中心值、VIF基底、alpha及lambda設定。另保存R與套件版本、Quarto版本及各階段確認紀錄；跨機重現可使用renv鎖定套件。</p>
+  <p>OLS本身沒有隨機性，數值一致仍需相同資料、設定與軟體環境。PDF的字型、時間與metadata可能不同，因此不保證檔案位元組相同。預設採alpha＝0.05、雙尾檢定與95%信賴區間；所有數字取自實際R輸出。</p>
+  <p>主要方法參考Program_1.pdf、Program_2.pdf，以及Montgomery、Peck與Vining（2012）的<em>Introduction to Linear Regression Analysis</em>第5版。VIF、多項式基底與相關補充方法，另參考<a href="https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/vif.htm">NIST VIF說明</a>、<a href="https://www.stat.math.ethz.ch/R-manual/R-devel/library/stats/html/poly.html">R多項式文件</a>及<a href="https://www.stat.ethz.ch/CRAN/web/packages/car/refman/car.html">car VIF／GVIF文件</a>；來源對照與教材勘誤整理於方法文件。</p>
+</section>
+<footer>互動式迴歸分析 Skill｜流程設計與使用說明<br>本文件為功能與操作流程介紹。流程圖以內嵌SVG呈現，可離線開啟；亦可透過瀏覽器列印。</footer>
+</main></body></html>

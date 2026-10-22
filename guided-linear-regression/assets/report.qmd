@@ -1,0 +1,286 @@
+---
+title: "逐階段線性迴歸分析報告"
+lang: zh-TW
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: article
+    include-in-header:
+      text: |
+        \usepackage{xeCJK}
+        \setCJKmainfont{Microsoft JhengHei}
+    geometry: margin=22mm
+params:
+  analysis_finished: false
+  data_file: trees.csv
+  response: null
+  predictors: null
+  selection_confirmed: false
+  model_confirmed: false
+  research_goal: null
+  polynomial_degrees: null
+  center_polynomial: true
+  center_values: null
+  approve_fit: false
+  approve_diagnostics: false
+  approve_boxcox_profile: false
+  approve_boxcox: false
+  boxcox_lambda: null
+  approve_influence: false
+  order_verified: false
+execute:
+  echo: true
+  warning: false
+  error: false
+  cache: false
+---
+
+<!-- stage: setup -->
+
+```{r}
+#| include: false
+if(.Platform$OS.type=="windows") Sys.setlocale("LC_CTYPE","Chinese (Traditional)_Taiwan.utf8")
+stopifnot(isTRUE(params$analysis_finished))
+source("regression.R",encoding="UTF-8")
+configure()
+stopifnot(!params$approve_fit || (params$selection_confirmed && params$model_confirmed),
+ !params$approve_diagnostics || params$approve_fit,
+ !params$approve_boxcox_profile || params$approve_diagnostics,
+ !params$approve_boxcox || params$approve_boxcox_profile,
+ !params$approve_influence || params$approve_fit)
+fmt<-function(x) format.pval(x,digits=4,eps=.0001)
+decision<-function(p) if(p<.05) "拒絕虛無假設" else "沒有足夠證據拒絕虛無假設"
+y<-params$response;xs<-unlist(params$predictors,use.names=FALSE)
+degrees<-unlist(params$polynomial_degrees);centers<-unlist(params$center_values)
+```
+
+<!-- stage: exploration -->
+
+# 資料概況與探索
+
+## Code 1：讀取資料與摘要
+
+```{r}
+d<-read.csv(params$data_file,check.names=FALSE)
+summary(d)
+colSums(is.na(d))
+tools::md5sum(params$data_file)
+```
+
+**本段結果解釋：** 本段呈現每個欄位的摘要、缺失數及資料雜湊。先確認觀測單位、欄位意義與特殊遺失碼，再選擇分析變數；不得直接刪除缺失觀測或把識別碼當作解釋變數。正式交付時，依實際摘要補充樣本數與資料品質說明。
+
+## Code 2：所有數值變數的兩兩散佈圖
+
+```{r}
+#| fig-width: 7
+#| fig-height: 6
+numeric_names<-names(d)[vapply(d,is.numeric,logical(1))]
+if(length(numeric_names)>=2) pairs(d[numeric_names],pch=19,col="#256B83")
+if(length(numeric_names)==1) hist(d[[numeric_names]],main=numeric_names,xlab=numeric_names)
+names(d)[!vapply(d,is.numeric,logical(1))]
+```
+
+**本段結果解釋：** 散佈圖顯示數值變數的兩兩關係，非數值欄位另列。正式報告依本次實際圖形描述曲線、散布與異常外觀。
+
+<!-- stage: vif -->
+
+# 選定X與Y後的VIF與模型確認
+
+## Code 3：設計矩陣VIF（不提前配適Y）
+
+```{r}
+#| eval: !expr params$selection_confirmed
+design_check<-vif_design(d,y,xs,degrees=degrees,center=params$center_polynomial,
+ centers=centers,selection_confirmed=TRUE)
+centers<-design_check$spec$centers
+```
+
+```{r}
+#| eval: !expr params$selection_confirmed
+#| echo: false
+#| results: asis
+cat(sprintf("**本段結果解釋：** 已設定X：%s；Y：%s；模型類型：%s。公式為`%s`。
+
+",paste(xs,collapse=", "),y,design_check$spec$model_type,paste(deparse(design_check$spec$formula),collapse="")))
+goal<-if(is.null(params$research_goal)) sprintf("分析%s與%s在指定模型下的關係（研究目的及單位需確認）",paste(xs,collapse="、"),y) else params$research_goal
+cat(sprintf("研究目的：%s。\n\n",goal))
+for(j in seq_len(nrow(design_check$table))) {
+ row<-design_check$table[j,]
+ advice<-if(!is.finite(row$VIF)) "完全或近完全依賴，先核查設計，不配適" else if(row$VIF>=10) "共線性偏高，核查重複變數與中心化" else if(row$VIF>=5) "需留意共線性，依研究目的核查" else "未見強烈VIF共線性訊號"
+ cat(sprintf("- %s：VIF=%.4f，tolerance=%.4f；%s。
+",row$design_column,row$VIF,row$tolerance,advice))
+}
+if(nrow(design_check$table)==1) cat("
+只有一個設計column，VIF按定義為1；不是誤差獨立性或曲線適切性檢定。
+")
+cat("
+這是column層級VIF，factor的dummy分開列出，非GVIF。5及10為經驗提示，不據此自動刪X。多項式的高VIF可能來自次方項本身；解讀須依本次確認的模型階數、中心化及公式。
+")
+```
+
+本段記錄已完成的變數角色、VIF及模型設計；多項式列出實際使用的階數與中心值。
+
+<!-- stage: fit -->
+
+# 模型配適
+
+## Code 4：估計模型、係數與檢定
+
+```{r}
+#| eval: !expr params$approve_fit
+stopifnot(length(y)==1,length(xs)>=1,all(c(y,xs)%in%names(d)),is.numeric(d[[y]]))
+stopifnot(!anyNA(d[c(y,xs)]))
+fit<-fit_model(d,y,xs,approved=TRUE,degrees=degrees,
+ center=params$center_polynomial,centers=centers)
+summary(fit)
+confint(fit)
+```
+
+```{r}
+#| eval: !expr params$approve_fit
+#| echo: false
+#| results: asis
+s<-summary(fit);fs<-s$fstatistic
+fp<-pf(fs[1],fs[2],fs[3],lower.tail=FALSE)
+cat(sprintf("**本段結果解釋：** 使用公式 `%s`，樣本數為%d。整體F=%.4f（自由度%.0f、%.0f），p=%s，%s（所有斜率為零）。R²=%.4f，調整R²=%.4f，殘差標準差=%.4f。\n\n",paste(deparse(formula(fit)),collapse=""),nobs(fit),fs[1],fs[2],fs[3],fmt(fp),decision(fp),s$r.squared,s$adj.r.squared,s$sigma))
+for(j in seq_len(nrow(s$coefficients))) {
+ cc<-s$coefficients[j,];ci<-confint(fit)[j,]
+ cat(sprintf("- %s：估計值%.4f，SE=%.4f，t=%.4f，p=%s，95%% CI=[%.4f, %.4f]；%s（該係數為零）。\n",rownames(s$coefficients)[j],cc[1],cc[2],cc[3],fmt(cc[4]),ci[1],ci[2],decision(cc[4])))
+}
+cat("\n多元係數解釋須以控制其他X為前提，並依欄位單位補充實質意義；關聯不代表因果。假設診斷前推論為暫定。\n")
+```
+
+## Code 5：原始資料與配適結果比較
+
+```{r}
+#| eval: !expr params$approve_fit
+fit_output(fit,d,y,xs,show_summary=FALSE)
+```
+
+**本段結果解釋：** 單一數值X比較原始點與直線／多項式曲線；多個X使用實際值對配適值圖及固定其他X的條件線／曲線，其他數值X固定中位數、factor固定參考組。依實際圖補充配適偏離；不能把條件線當作所有原始點的邊際迴歸線。本圖用於檢視已配適模型與資料的偏離。
+
+<!-- stage: diagnostics -->
+
+# 殘差分析
+
+## Code 6：殘差圖與三項檢定
+
+```{r}
+#| eval: !expr params$approve_diagnostics
+diag_original<-diagnostics(fit,approved=TRUE,ordered=params$order_verified)
+```
+
+```{r}
+#| eval: !expr params$approve_diagnostics
+#| echo: false
+#| results: asis
+cat("**本段結果解釋：**\n\n")
+if(!is.null(diag_original$shapiro)) cat(sprintf("- Shapiro-Wilk：W=%.4f，p=%s，%s（常態性）。\n",diag_original$shapiro$statistic,fmt(diag_original$shapiro$p.value),decision(diag_original$shapiro$p.value)))
+cat(sprintf("- 學生化Breusch-Pagan：統計量=%.4f，p=%s，%s（同方差）。\n",diag_original$bp$statistic,fmt(diag_original$bp$p.value),decision(diag_original$bp$p.value)))
+cat(sprintf("- Durbin-Watson：DW=%.4f，雙尾p=%s，%s（一階誤差自相關為零）。\n",diag_original$dw$statistic,fmt(diag_original$dw$p.value),decision(diag_original$dw$p.value)))
+if(!params$order_verified) cat("\nDW按目前資料row順序執行，尚未確認為時間或採樣順序；因此結果依賴排列，不能據此確認誤差獨立。\n")
+cat("\n需依實際殘差圖補充曲線、漏斗形與尾部偏離，綜合提出是否建議Box-Cox；未拒絕不代表證明假設成立。\n")
+```
+
+<!-- stage: boxcox_profile -->
+
+# Box-Cox：先看估計與圖，再決定轉換值
+
+## Code 7：lambda估計、95%信賴區間與Box-Cox plot
+
+```{r}
+#| eval: !expr params$approve_boxcox_profile
+bc_profile<-boxcox_profile(fit,approved=TRUE)
+```
+
+```{r}
+#| eval: !expr params$approve_boxcox_profile
+#| echo: false
+#| results: asis
+cat(sprintf("**本段結果解釋：** lambda估計值為%.4f，95%% profile likelihood CI為[%.4f, %.4f]（由固定網格與端點線性內插近似）。圖中實線標示估計值、垂直虛線標示CI，水平線為95%%門檻。\n\n",bc_profile$lambda_hat,bc_profile$CI95[1],bc_profile$CI95[2]))
+cat("估計值與區間描述目前模型下的Box-Cox profile likelihood；實際使用的lambda於已完成的轉換結果中另外記錄。\n")
+```
+
+<!-- stage: boxcox -->
+
+# Box-Cox轉換與轉換後診斷
+
+## Code 8：使用選定lambda轉換並重新配適
+
+```{r}
+#| eval: !expr params$approve_boxcox
+bc<-transform_model(fit,d,y,xs,approved=TRUE,
+ lambda=params$boxcox_lambda,profile=bc_profile)
+summary(bc$fit)
+confint(bc$fit)
+```
+
+```{r}
+#| eval: !expr params$approve_boxcox
+#| echo: false
+#| results: asis
+cat(sprintf("**本段結果解釋：** lambda估計值%.4f；本次實際使用%.4f，來源為%s。lambda=0採log(Y)，其餘採(Y^lambda−1)/lambda；若指定值在95%%CI之外須如實註明，不自行改回估計值。\n\n",bc$lambda_hat,bc$lambda,if(bc$chosen_by=="user") "使用者指定" else "估計值（預設）"))
+if(bc$lambda<bc$CI95[1] || bc$lambda>bc$CI95[2]) cat("本次指定lambda位於95% profile CI之外。\n\n")
+bs<-summary(bc$fit)
+cat(sprintf("轉換後R²=%.4f，殘差標準差=%.4f，兩者均屬轉換尺度，不直接用來與原尺度比較優劣。係數與CI同屬轉換尺度，需依實際結果補充各係數的研究意義。\n",bs$r.squared,bs$sigma))
+```
+
+## Code 9：轉換後配適圖與殘差重檢
+
+```{r}
+#| eval: !expr params$approve_boxcox
+fit_output(bc$fit,bc$data,".transformed_y",xs,show_summary=FALSE)
+diag_transformed<-diagnostics(bc$fit,approved=TRUE,ordered=params$order_verified)
+```
+
+```{r}
+#| eval: !expr params$approve_boxcox
+#| echo: false
+#| results: asis
+cat("**本段結果解釋：** 重新檢查實際配適圖與殘差圖。\n\n")
+if(!is.null(diag_transformed$shapiro)) cat(sprintf("- Shapiro-Wilk：p=%s，%s（常態性）。\n",fmt(diag_transformed$shapiro$p.value),decision(diag_transformed$shapiro$p.value)))
+cat(sprintf("- Breusch-Pagan：p=%s，%s（同方差）。\n",fmt(diag_transformed$bp$p.value),decision(diag_transformed$bp$p.value)))
+cat(sprintf("- Durbin-Watson：DW=%.4f，p=%s，%s（一階誤差自相關為零）。\n",diag_transformed$dw$statistic,fmt(diag_transformed$dw$p.value),decision(diag_transformed$dw$p.value)))
+if(!params$order_verified) cat("\nDW沿用目前row順序，無已確認時間意義；轉換不保證消除相依。\n")
+cat("\n依圖形及同一診斷方法比較前後改善，並說明一般lm推論未包含lambda估計不確定性。綜合圖形與檢定評估轉換後模型。\n")
+```
+
+<!-- stage: influence -->
+
+# 離群與影響點
+
+## Code 10：離群與影響指標
+
+```{r}
+#| eval: !expr params$approve_influence
+final_fit<-if(params$approve_boxcox) bc$fit else fit
+flags<-influence_output(final_fit,approved=TRUE)
+```
+
+```{r}
+#| eval: !expr params$approve_influence
+#| echo: false
+#| results: asis
+cat(sprintf("**本段結果解釋：** 本次診斷%s。\n\n",if(params$approve_boxcox) "轉換後模型" else "原模型"))
+if(nrow(flags)==0) {
+ cat("沒有被所用門檻標記的離群值或影響樣本。\n")
+} else {
+ cat(sprintf("共%d個樣本被至少一項門檻標記，僅呈現這些樣本：%s。\n",nrow(flags),paste(flags$row_id,collapse=", ")))
+ cat("各樣本flag_reason列出觸發原因；表內包含其診斷值，DFBETAS亦只列被標記樣本。\n")
+}
+cat("\n門檻僅供核查，高槓桿、反應離群與影響不同；不自動刪除任何樣本。\n")
+```
+
+<!-- stage: reproducibility -->
+
+# 重現資訊與方法來源
+
+## Code 11：軟體環境
+
+```{r}
+sessionInfo()
+```
+
+**本段結果解釋：** 保留R、套件版本與語系。連同資料MD5、公式、確認紀錄、排序及實際lambda，重現相同設定下的數值結果。正式交付前，將各段「依實際圖形補充」文字改成已檢視圖形的具體說明；最終稿只包含本次成功完成的分析內容，不保留未執行章節、提示或程式碼。
+
+方法依Program_1.pdf、Program_2.pdf及Montgomery、Peck、Vining（2012）Introduction to Linear Regression Analysis，第5版第2–6章。完整公式與教材勘誤見references/methods.md。
