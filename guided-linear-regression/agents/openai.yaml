@@ -1,0 +1,4 @@
+interface:
+  display_name: "互動式迴歸與VIF診斷"
+  short_description: "先畫圖選擇變數與檢視VIF，再確認簡單、複迴歸或多項式階數，逐步產出中文報告"
+  default_prompt: "使用 $guided-linear-regression 先畫所有變數散佈圖，選定Y與X後呈現VIF，確認模型及多項式階數後才配適。"
